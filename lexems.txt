@@ -1,24 +1,32 @@
-COMMA = ,
-SMCLN = ;
-ASSIGN = =
-EQ = ==
-GR = >
-LESS = <
-GREQ = >=
-LESSEQ = <=
-OP_PAR = (
-CL_PAR = )
-OP_BR = {
-CL_BR = }
-SPACE = ' ' | '\t' | '\n'
-PLUS = +
-MINUS = -
-MULT = *
-DIV = /
-TYPE = int | char
-RETURN = return
-IF = if
-ELSE = else
-FOR = for
-NUMBER = 0 | (-)?(1-9)(0-9){0,7} // число-константа, не больше 8 знаков 
-NAME = (a-z)(a-z|0-9){0,19} //название переменной\функции 
+comma = ,
+smcln = ;
+assign = =
+eq = ==
+gr = >
+less = <
+gr_eq = >=
+less_eq = <=
+op_par = (
+cl_par = )
+op_br = {
+cl_br = }
+op_sqr = [
+cl_sqr = ]
+space = ' ' | '\t' | '\n'
+plus = +
+minus = -
+mult = *
+div = /
+or = |
+not = !
+and = &
+type = int | char | bool
+return = return
+if = if
+else = else
+for = for
+while = while
+write = write
+read = read
+number = 0 | (-)?(1-9)(0-9){0,7} // число-константа, не больше 8 знаков 
+name = (a-z)(a-z|0-9){0,19} //название переменной\функции 
