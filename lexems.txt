@@ -20,7 +20,7 @@ div = /
 or = |
 not = !
 and = &
-type = int | char | bool
+type = int | char | bool | int
 return = return
 if = if
 else = else
@@ -28,5 +28,5 @@ for = for
 while = while
 write = write
 read = read
-number = 0 | (-)?(1-9)(0-9){0,7} // число-константа, не больше 8 знаков 
-name = (a-z)(a-z|0-9){0,19} //название переменной\функции 
+number = 0 | (-)?(1-9)(0-9){0,7} // const (<= 8 digits) 
+name = (a-z)(a-z|0-9){0,19} // func/var name (<= 20 chars)
