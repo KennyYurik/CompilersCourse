@@ -24,7 +24,6 @@ type = int | char | bool | int
 return = return
 if = if
 else = else
-for = for
 while = while
 write = write
 read = read

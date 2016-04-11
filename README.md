@@ -22,8 +22,6 @@
    * calling `b = func(n, i, j, 14);` (with commas)
 * while
   `while (a > b) { body }`
-* for
-  `for (i, a + b, 2)` (i goes from a + b to 2 with step = 1)
 * if
   `if (a == b) { body1 } else { body2 }` (else clause is unnesessary)
 * allows nested blocks
@@ -40,7 +38,7 @@ int fact1(int n) {
 int fact2(int n) {
 	int i ans;
 	ans = 1;
-	for (i, 1, n) { ans = ans * i; }
+	while (i <= n) { ans = ans * i; i = i + 1; }
 	return ans;
 }
 void main(){
