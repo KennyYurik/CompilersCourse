@@ -17,7 +17,7 @@
 * allows arrays 
    `int[4] a b;` (a and b are two static arrays size of 4)
 * functions 
-   * declaration `int a(int b int c int[5] d){ body }` (without commas too)
+   * declaration `a(int b int c int[5] d) int { body }` (without commas too, type before body)
    * return `return 1;`
    * calling `b = func(n, i, j, 14);` (with commas)
 * while
@@ -27,21 +27,21 @@
 * allows nested blocks
 * user should initialize everything by himself
 * functions `read(a)`, `write(a)`
-* program starts its execution from `void main(){}` function
+* program starts its execution from `main() void {}` function
 
 ## Example
 ```
-int fact1(int n) {
+fact1(int n) int {
 	if (n < 2) { return 1; }
 	else { return n * fact1(n - 1); }
 }
-int fact2(int n) {
+fact2(int n) int {
 	int i ans;
 	ans = 1;
 	while (i <= n) { ans = ans * i; i = i + 1; }
 	return ans;
 }
-void main(){
+main() void {
 	int a b;
 	read(n);
 	b = fact1(n);
