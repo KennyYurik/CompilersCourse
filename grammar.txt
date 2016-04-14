@@ -20,12 +20,25 @@ FUNCTION_CALL_COMMAND = FUNCTION_CALL smcln
 FUNCTION_CALL = name op_par ARG_LIST_CALLING cl_par 
 ARG_LIST_CALLING = eps | EXPRESSION ARG_LIST_CALLING2
 ARG_LIST_CALLING2 = eps | comma EXPRESSION
-EXPRESSION = ...
+EXPRESSION = EXPR1 OR_EXPR
+OR_EXPR = or EXPR1 OR_EXPR | eps
+EXPR1 = EXPR2 AND_EXPR
+AND_EXPR = and EXPR2 AND_EXPR | eps
+EXPR2 = not EXPR3 | EXPR3
+EXPR3 = EXPR4 COMP_EXPR
+COMP_EXPR = (eq | gr | less | gr_eq | less_eq) EXPR4 | eps
+EXPR4 = EXPR5 PLUS_EXPR
+PLUS_EXPR = (plus | minus) EXPR5 PLUS_EXPR | eps
+EXPR5 = minus EXPR5 | EXPR6 MULT_EXPR
+MULT_EXPR = (mul | div) EXPR6 MULT_EXPR | eps
+EXPR6 = name | number | op_par EXPRESSION cl_par
+
+
+
 
 
 
 
 
 ~~ TODO - deterministic ~~
-
 
