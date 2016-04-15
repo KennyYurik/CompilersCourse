@@ -7,11 +7,12 @@
 # Project structure
 * [lexems.txt](../master/lexems.txt) - description of tokens
 * [grammar.txt](../master/grammar.txt) - formal description of language rules
+* [lexer.cpp](../master/Parser/lexer.cpp) - lexical analyzer (characters -> tokens)
 * TBD
 
 # Language description
 * simple language based on C
-* types: bool, void, char, int
+* types: int, void
 * declaration 
    `int a b c;` (without commas)
 * allows arrays 
