@@ -25,5 +25,8 @@ RETURN = return
 IF = if
 ELSE = else
 WHILE = while
-NUMBER = 0 | (1-9)(0-9){0,7} // const (<= 8 digits) 
-NAME = (a-z)(a-z|0-9){0,19} // func/var name (<= 20 chars)
+NUMBER = 0 | (1-9)(0-9)* 
+VARNAME = (a-z)(a-z0-9)*
+FUNCNAME = (A-Z)(A-Z0-9)*
+END
+EPS

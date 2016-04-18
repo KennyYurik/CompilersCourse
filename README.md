@@ -13,41 +13,45 @@
 # Language description
 * simple language based on C
 * types: int, void
+* variables - lowercase letters and digits
 * declaration 
-   `int a b c;` (without commas)
+   `int a;` (only one variable in line)
 * allows arrays 
-   `int[4] a b;` (a and b are two static arrays size of 4)
+   `int[4] a;` (a is static array size of 4)
 * functions 
-   * declaration `a(int b int c int[5] d) int { body }` (without commas too, type before body)
+   * names - uppercase letters and digits
+   * declaration `A(int b int c int[5] d) int { body }` (without commas, type before body)
    * return `return 1;`
-   * calling `b = func(n, i, j, 14);` (with commas)
+   * calling `b = FUNC(n i j 14);` (without commas)
 * while
   `while (a > b) { body }`
 * if
   `if (a == b) { body1 } else { body2 }` (else clause is unnesessary)
 * allows nested blocks
 * user should initialize everything by himself
-* functions `read(a)`, `write(a)`
-* program starts its execution from `main() void {}` function
+* functions `READ(a)`, `WRITE(a)`
+* program starts its execution from `MAIN() void {}` function
 
 ## Example
 ```
-fact1(int n) int {
+FACT1(int n) int {
 	if (n < 2) { return 1; }
-	else { return n * fact1(n - 1); }
+	else { return n * FACT1(n - 1); }
 }
-fact2(int n) int {
-	int i ans;
+FACT2(int n) int {
+	int i;
+	int ans;
 	ans = 1;
+	i = 1;
 	while (i <= n) { ans = ans * i; i = i + 1; }
 	return ans;
 }
-main() void {
+MAIN() void {
 	int a b;
-	read(n);
-	b = fact1(n);
-	write(b);
-	b = fact2(n);
-	write(b);
+	READ(n);
+	b = FACT1(n);
+	WRITE(b);
+	b = FACT2(n);
+	WRITE(b);
 }
 ```

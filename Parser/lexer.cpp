@@ -15,7 +15,7 @@ struct Token {
 	enum TokenType {
 		COMMA, SMCLN, ASSIGN, EQ, GR, LESS, GR_EQ, LESS_EQ, OP_PAR, CL_PAR,
 		OP_BR, CL_BR, OP_SQR, CL_SQR, PLUS, MINUS, MULT, DIV, OR, NOT, AND,
-		TYPE, RETURN, IF, ELSE, WHILE, NUMBER, NAME
+		TYPE, RETURN, IF, ELSE, WHILE, NUMBER, VARNAME, FUNCNAME, END, EPS
 	};
 	TokenType type;
 	string value;
@@ -47,30 +47,24 @@ public:
 						break;
 					}
 				}
-				//name
-				if (!match && isalpha(s[pos])) {
-					int endpos = pos;
-					while (endpos < s.size() && (isalpha(s[endpos]) || isdigit(s[endpos]))) {
-						++endpos;
+				auto f = [&](int(*g)(int), Token::TokenType t) {
+					if (!match && g(s[pos])) {
+						int endpos = pos;
+						while (endpos < s.size() && (g(s[endpos]) || isdigit(s[endpos]))) {
+							++endpos;
+						}
+						string name = s.substr(pos, endpos - pos);
+						tokenstream.push_back({ t, name });
+						pos = endpos;
+						match = true;
 					}
-					string name = s.substr(pos, endpos - pos);
-					tokenstream.push_back({ Token::NAME, name });
-					pos = endpos;
-					continue;
-				}
-				//number
-				if (!match && isdigit(s[pos])) {
-					int endpos = pos;
-					int ans = 0;
-					while (endpos < s.size() && isdigit(s[endpos])) {
-						ans *= 10;
-						ans += s[endpos] - '0';
-						++endpos;
-					}
-					tokenstream.push_back({ Token::NUMBER, to_string(ans) });
-					pos = endpos;
-					continue;
-				}
+				};
+				//try varname
+				f(islower, Token::VARNAME);
+				//try funcname
+				f(isupper, Token::FUNCNAME);
+				//try number
+				f(isdigit, Token::NUMBER);
 				// parse error
 				if (!match)
 					throw exception("wrong character");

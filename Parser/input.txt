@@ -1,18 +1,20 @@
-fact1(int n) int {
+FACT1(int n) int {
 	if (-n > -2) { return 1; }
-	else { return n * fact1(n - 1); }
+	else { return n * FACT1(n - 1); }
 }
-fact2(int n) int {
-	int i ans;
+FACT2(int n) int {
+	int i;
+	int ans;
+	i = 1;
 	ans = 1;
 	while (i <= n) { ans = ans * i; i = i + 1; }
 	return ans;
 }
-main() void {
+MAIN() void {
 	int a b;
-	read(n);
-	b = fact1(n);
-	write(b);
-	b = fact2(n);
-	write(b);
+	READ(n);
+	b = FACT1(n);
+	WRITE(b);
+	b = FACT2(n);
+	WRITE(b);
 }

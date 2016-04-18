@@ -1,37 +1,35 @@
 nondeterministic grammar:
 
 program = declaration_list
-declaration_list = declaration declaration_list | EPS
+declaration_list = declaration declaration_list | eps
 declaration = var_declaration | function_declaration
-var_declaration = TYPE array_declaration var_list SMCLN
-var_list = NAME var_list | EPS
-array_declaration = OP_SQR NUMBER CL_SQR | EPS
-function_declaration = NAME OP_PAR arg_list CL_PAR TYPE block
-arg_list = TYPE NAME arg_list | EPS
+var_declaration = TYPE array_declaration VARNAME SMCLN
+array_declaration = OP_SQR NUMBER CL_SQR | eps
+function_declaration = FUNCNAME OP_PAR arg_list CL_PAR TYPE block
+arg_list = TYPE VARNAME arg_list | eps
 block = OP_BR command_list CL_BR
-command_list = command command_list | EPS
+command_list = command command_list | eps
 command = var_declaration | assign | if_clause | while_loop | return_command | function_call_command
-assign = NAME ASSIGN expression SMCLN
+assign = VARNAME ASSIGN expression SMCLN
 if_clause = IF OP_PAR expression CL_PAR block else_clause
-else_clause = ELSE block
+else_clause = ELSE block | eps
 while_loop = WHILE OP_PAR expression CL_PAR block
-return_command = RETURN SMCLN | RETURN expression SMCLN
+return_command = RETURN | RETURN expression SMCLN
 function_call_command = function_call SMCLN
-function_call = NAME OP_PAR arg_list_calling CL_PAR 
-arg_list_calling = EPS | expression arg_list_calling2
-arg_list_calling2 = EPS | COMMA expression
+function_call = FUNCNAME OP_PAR arg_list_calling CL_PAR 
+arg_list_calling = expression arg_list_calling | eps
 expression = expr1 or_expr
-or_expr = OR expr1 or_expr | EPS
+or_expr = OR expr1 | eps
 expr1 = expr2 and_expr
-and_expr = AND expr2 and_expr | EPS
+and_expr = AND expr2 | eps
 expr2 = NOT expr3 | expr3
 expr3 = expr4 comp_expr
-comp_expr = (EQ | GR | LESS | GR_EQ | LESS_EQ) expr4 | EPS
+comp_expr = (EQ | GR | LESS | GR_EQ | LESS_EQ) expr4 | eps
 expr4 = expr5 plus_expr
-plus_expr = (PLUS | MINUS) expr5 plus_expr | EPS
+plus_expr = (PLUS | MINUS) expr5 plus_expr | eps
 expr5 = MINUS expr5 | expr6 mult_expr
-mult_expr = (MUL | DIV) expr6 mult_expr | EPS
-expr6 = NAME | NUMBER | OP_PAR expression CL_PAR
+mult_expr = (MUL | DIV) expr6 mult_expr | eps
+expr6 = VARNAME | NUMBER | function_call | OP_PAR expression CL_PAR
 
 
 
