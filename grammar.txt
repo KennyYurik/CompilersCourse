@@ -1,42 +1,34 @@
-nondeterministic grammar:
+deterministic grammar:
 
 program = declaration_list
-declaration_list = declaration declaration_list | eps
+declaration_list = declaration declaration_list | EPS
 declaration = var_declaration | function_declaration
 var_declaration = TYPE array_declaration VARNAME SMCLN
-array_declaration = OP_SQR NUMBER CL_SQR | eps
+array_declaration = OP_SQR NUMBER CL_SQR | EPS
 function_declaration = FUNCNAME OP_PAR arg_list CL_PAR TYPE block
-arg_list = TYPE VARNAME arg_list | eps
+arg_list = TYPE VARNAME arg_list | EPS
 block = OP_BR command_list CL_BR
-command_list = command command_list | eps
+command_list = command command_list | EPS
 command = var_declaration | assign | if_clause | while_loop | return_command | function_call_command
 assign = VARNAME ASSIGN expression SMCLN
 if_clause = IF OP_PAR expression CL_PAR block else_clause
-else_clause = ELSE block | eps
+else_clause = ELSE block | EPS
 while_loop = WHILE OP_PAR expression CL_PAR block
-return_command = RETURN | RETURN expression SMCLN
+return_command = RETURN return_value SMCLN
+return_value = expression | EPS
 function_call_command = function_call SMCLN
 function_call = FUNCNAME OP_PAR arg_list_calling CL_PAR 
-arg_list_calling = expression arg_list_calling | eps
+arg_list_calling = expression arg_list_calling | EPS
 expression = expr1 or_expr
-or_expr = OR expr1 | eps
+or_expr = OR expr1 | EPS
 expr1 = expr2 and_expr
-and_expr = AND expr2 | eps
+and_expr = AND expr2 | EPS
 expr2 = NOT expr3 | expr3
 expr3 = expr4 comp_expr
-comp_expr = (EQ | GR | LESS | GR_EQ | LESS_EQ) expr4 | eps
+comp_expr = ( EQ | GR | LESS | GR_EQ | LESS_EQ ) expr4 | EPS
 expr4 = expr5 plus_expr
-plus_expr = (PLUS | MINUS) expr5 plus_expr | eps
-expr5 = MINUS expr5 | expr6 mult_expr
-mult_expr = (MUL | DIV) expr6 mult_expr | eps
-expr6 = VARNAME | NUMBER | function_call | OP_PAR expression CL_PAR
-
-
-
-
-
-
-
-
-~~ TODO - deterministic ~~
-
+plus_expr = ( PLUS | MINUS ) expr5 plus_expr | EPS
+expr5 = expr6 mult_expr
+mult_expr = ( MUL | DIV ) expr6 mult_expr | EPS
+expr6 = VARNAME array_calling | NUMBER | function_call | OP_PAR expression CL_PAR
+array_calling = OP_SQR expression CL_SQR | EPS
