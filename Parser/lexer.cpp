@@ -1,21 +1,20 @@
+/*
+TODO
+fix parse bugs
+replace with regexp
+*/
+
 #include <exception>
 #include <string>
 #include <vector>
 #include <fstream>
 using namespace std;
 
-/*class compilation_error : public exception {
-	streampos pos;
-	compilation_error(string s, streampos pos) : exception(), pos(pos) {
-		
-	}
-};*/
-
 struct Token {
 	enum TokenType {
 		COMMA, SMCLN, ASSIGN, EQ, GR, LESS, GR_EQ, LESS_EQ, OP_PAR, CL_PAR,
 		OP_BR, CL_BR, OP_SQR, CL_SQR, PLUS, MINUS, MULT, DIV, OR, NOT, AND,
-		TYPE, RETURN, IF, ELSE, WHILE, NUMBER, VARNAME, FUNCNAME, END, EPS
+		TYPE, RETURN, IF, ELSE, WHILE, NUMBER, VARNAME, FUNCNAME, END
 	};
 	TokenType type;
 	string value;
@@ -28,7 +27,7 @@ public:
 	LexAnalizer(string filename) {
 		ifstream in(filename);
 		string s;
-		vector<Token> samples = { { Token::COMMA, "," }, { Token::SMCLN, ";" }, { Token::EQ, "==" }, 
+		vector<Token> samples = { { Token::SMCLN, ";" }, { Token::EQ, "==" }, 
 		{ Token::ASSIGN, "=" }, { Token::GR_EQ, ">=" },	{ Token::LESS_EQ, "<=" }, { Token::GR, ">" },
 		{ Token::LESS, "<" }, { Token::OP_PAR, "(" }, { Token::CL_PAR, ")" }, { Token::OP_BR, "{" },
 		{ Token::CL_BR, "}" }, { Token::OP_SQR, "[" }, { Token::CL_SQR, "]" }, { Token::PLUS, "+" },
@@ -70,13 +69,14 @@ public:
 					throw exception("wrong character");
 			}
 		}
+		tokenstream.push_back(Token({Token::END, "END"}));
 	}
 };
 
-void main() {
+/*void main() {
 	ofstream out("out.txt");
 	LexAnalizer LA("input.txt");
 	for (auto token : LA.tokenstream) {
 		out << token.value << endl;
 	}
-}
+}*/
