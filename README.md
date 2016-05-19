@@ -55,3 +55,4 @@ MAIN() void {
 	WRITE(b);
 }
 ```
+test
