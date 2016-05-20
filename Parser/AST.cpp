@@ -31,6 +31,13 @@ class Node_NUMBER : public Terminal {
 
 class AST {
 	AbstractNode* root;
-	//table
+	vector<AbstractNode*> current;
+	//+ table
 
+	AST() {
+		root = new Node_expr();
+	}
+	void add(lexem) {
+
+	}
 };
