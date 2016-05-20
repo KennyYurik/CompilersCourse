@@ -1,18 +1,19 @@
 #include <fstream>
 #include <string>
+#include <iostream>
 #include <vector>
 #include <map>
 #include <sstream>
 #include <set>
-
 using namespace std;
+typedef vector<string> Rule; // Rule: -> term1 term2 term3
 
-map<string, vector<vector<string>>> rules;
+
+map<string, vector<Rule>> rules;
 map<string, set<string>> FIRST;
 map<string, set<string>> FOLLOW;
 set<string> terms;
-map<string, map<string, vector<vector<string>>>> table;
-
+map<string, map<string, Rule>> table;
 
 template<class C, class T> 
 bool contains(C& container, T& elem) {
@@ -99,11 +100,19 @@ void inittable() {
 			//for each X -> alpha
 			auto FIRSTalpha = first(rule);
 			for (auto& term : FIRSTalpha) {
-				table[entry.first][term].push_back(rule);
+				if (table[entry.first].find(term) != table[entry.first].end()) {
+					//cerr << "qqq";
+					exit(1);
+				}
+				table[entry.first][term] = rule;
 			}
 			if (contains(FIRSTalpha, "EPS")) {
 				for (auto& term : FOLLOW[entry.first]) {
-					table[entry.first][term].push_back(rule);
+					if (table[entry.first].find(term) != table[entry.first].end()) {
+						cerr << "qqq";
+						exit(1);
+					}
+					table[entry.first][term] = rule;
 				}
 			}
 		}
@@ -166,19 +175,6 @@ int main() {
 	initFIRSTset();
 	initFOLLOWset();
 	inittable();
-	for (auto row : table) {
-		for (auto entry : row.second) {
-			if (entry.second.size() > 1) {
-				out << "\n\n\n\n\n\n";
-			}
-			for (auto rule : entry.second) {
-				out << row.first << " " << entry.first << " ";
-				for (auto nterm : rule) {
-					out << nterm << " ";
-				}
-				out << endl;
-			}
-		}
-	}
+	
 	return 0;
 }
