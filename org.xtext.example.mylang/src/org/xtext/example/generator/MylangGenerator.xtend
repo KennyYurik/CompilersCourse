@@ -3,12 +3,12 @@
  */
 package org.xtext.example.generator
 
-import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.xtext.example.mylang.Program
+import org.xtext.example.mylang.VariableDecl
 
 /**
  * Generates code from your model files on save.
@@ -22,12 +22,21 @@ class MylangGenerator extends AbstractGenerator {
 		if (tree.size == 1) {
 			var e = tree.get(0);
 			if (e instanceof Program) {
-				fsa.generateFile('out.asm', e.walk);
+				try {
+					fsa.generateFile('out.asm', e.walk);
+				} catch (Exception exp) {
+					fsa.generateFile('error.txt', exp.message);
+				}
 			}
 		}
 	}
 	
-	def String walk(Program p) {
-		"hey"
-	}
+	def String walk(Program p) '''
+		.section data
+		«FOR decl : p.declarations»
+			«decl.name»
+			«IF decl.isArray»
+		«ENDFOR»
+		ans;
+	'''
 }
