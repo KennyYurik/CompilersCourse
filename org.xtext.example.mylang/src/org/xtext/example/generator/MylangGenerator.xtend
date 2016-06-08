@@ -3,11 +3,13 @@
  */
 package org.xtext.example.generator
 
+import java.util.List
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
 import org.xtext.example.mylang.Program
+import org.xtext.example.mylang.TYPE
 import org.xtext.example.mylang.VariableDecl
 
 /**
@@ -15,7 +17,27 @@ import org.xtext.example.mylang.VariableDecl
  * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
+abstract class Name {
+	public String pointer;		
+}
+
+class Variable extends Name {
+	
+} 
+
+class Func extends Name {
+	public TYPE result;
+	public List<TYPE> args = newLinkedList();
+} 
+
+class Array extends Name {
+	public int size;
+}
+
+	
 class MylangGenerator extends AbstractGenerator {
+	
+	var variables = newLinkedHashMap();
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		var tree = resource.contents;
@@ -34,9 +56,11 @@ class MylangGenerator extends AbstractGenerator {
 	def String walk(Program p) '''
 		.section data
 		«FOR decl : p.declarations»
-			«decl.name»
-			«IF decl.isArray»
+		«{ 
+		""}»
 		«ENDFOR»
 		ans;
 	'''
+	
+	//def String walk()
 }
