@@ -8,9 +8,13 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.xtext.example.mylang.AndExpr
+import org.xtext.example.mylang.CmpExpr
+import org.xtext.example.mylang.Expression
+import org.xtext.example.mylang.MulExpr
+import org.xtext.example.mylang.PlusExpr
 import org.xtext.example.mylang.Program
 import org.xtext.example.mylang.TYPE
-import org.xtext.example.mylang.VariableDecl
 
 /**
  * Generates code from your model files on save.
@@ -54,6 +58,7 @@ class MylangGenerator extends AbstractGenerator {
 	}
 	
 	def String walk(Program p) '''
+	
 		.section data
 		«FOR decl : p.declarations»
 		«{ 
@@ -61,6 +66,56 @@ class MylangGenerator extends AbstractGenerator {
 		«ENDFOR»
 		ans;
 	'''
+	//push its result on stack (4 bytes)
+	def String walk(Expression e) '''
+			«walk(e.first)»
+		«FOR expr : e.expr»
+		«»
+			«walk(expr)»
+			pop eax
+			or [esp] eax
+		«ENDFOR»
+	'''
+	//push its result on stack (4 bytes)
+	def String walk(AndExpr e) '''
+			«walk(e.first)»
+		«FOR expr : e.expr»
+		«»
+			«walk(expr)»
+			pop eax
+			and [esp] eax
+		«ENDFOR»
+	'''
 	
-	//def String walk()
-}
+	// push its result on stack (4 bytes)
+	def String walk(CmpExpr e) '''
+			«walk(e.first)»
+		«IF e.second != null»
+			
+		«ENDIF»
+	'''
+	
+	// push its result on stack (4 bytes)
+	def String walk(PlusExpr e) '''
+			«walk(e.first)»
+		«FOR expr : e.expr»
+		«»
+			«walk(expr)»
+			pop eax
+			and [esp] eax
+		«ENDFOR»
+	'''
+	
+	// push its result on stack (4 bytes)
+	def String walk(MulExpr e) '''
+			«walk(e.first)»
+		«FOR expr : e.expr»
+		«»
+			«walk(expr)»
+			pop eax
+			and [esp] eax
+		«ENDFOR»
+	'''
+	
+	
+} 
