@@ -5,40 +5,46 @@
 * 2nd half-term: AST-tree, asm code, optimizations
 
 # Project structure
-* [lexems.txt](../master/lexems.txt) - description of tokens
-* [grammar.txt](../master/grammar.txt) - formal description of language rules
-* [lexer.cpp](../master/Parser/lexer.cpp) - lexical analyzer (characters -> tokens)
-* TBD
+* [Mylang.xtext](../master/org.xtext.example.mylang/src/org/xtext/example/Mylang.xtext) - grammar + tokens
+* [MylangGenerator.xtend](../master/org.xtext.example.mylang/src/org/xtext/example/generator/MylangGenerator.xtend) - traversing over AST
 
 # Language description
 * simple language based on C
 * types: int, void
-* variables - lowercase letters and digits
+* variables
+   * same names do not allow in same scope vision
 * declaration 
    `int a;` (only one variable in line)
-* allows arrays 
-   `int[4] a;` (a is static array size of 4)
+* allows arrays (size = const)
+   `int[4] a;` (a is array size of 4)
 * functions 
-   * names - uppercase letters and digits
-   * declaration `A(int b int c int[5] d) int { body }` (without commas, type before body)
-   * return `return 1;`
-   * calling `b = FUNC(n i j 14);` (without commas)
+   * like in C
+   * declaration `int func(int a, int b) { body }`
+   * calling `b = func(1, 2);`
 * while
   `while (a > b) { body }`
 * if
   `if (a == b) { body1 } else { body2 }` (else clause is unnesessary)
 * allows nested blocks
-* user should initialize everything by himself
-* functions `READ(a)`, `WRITE(a)`
-* program starts its execution from `MAIN() void {}` function
+* global variables are initializing with 0, local are not initializing
+* functions `read(a)`, `write(a)`
+* program starts its execution from `void main() {}` function
+
+## Implementation
+
+* Implemented using xtext
+   * Building parser from .xtext grammar file
+   * Execute tree traverse in MylangGenerator.xtend
+   * Output file is %filename%.asm 
 
 ## Example
 ```
-FACT1(int n) int {
+int m;
+int fact1(int n) {
 	if (n < 2) { return 1; }
-	else { return n * FACT1(n - 1); }
+	else { return n * fact1(n - 1); }
 }
-FACT2(int n) int {
+int fact2(int n) {
 	int i;
 	int ans;
 	ans = 1;
@@ -46,12 +52,13 @@ FACT2(int n) int {
 	while (i <= n) { ans = ans * i; i = i + 1; }
 	return ans;
 }
-MAIN() void {
-	int a b;
-	READ(n);
-	b = FACT1(n);
-	WRITE(b);
-	b = FACT2(n);
+void main() {
+	int a;
+	int b;
+	READ(m);
+	a = fact1(m);
+	WRITE(a);
+	b = fact2(m);
 	WRITE(b);
 }
 ```
