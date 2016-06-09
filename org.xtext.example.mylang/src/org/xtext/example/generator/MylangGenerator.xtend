@@ -4,44 +4,82 @@
 package org.xtext.example.generator
 
 import java.util.List
+import java.util.Map
+import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.xtext.example.mylang.AndExpr
+import org.xtext.example.mylang.Assign
+import org.xtext.example.mylang.Block
 import org.xtext.example.mylang.CmpExpr
 import org.xtext.example.mylang.Expression
+import org.xtext.example.mylang.FinalExpr
+import org.xtext.example.mylang.FunctionCall
+import org.xtext.example.mylang.FunctionDecl
+import org.xtext.example.mylang.If
 import org.xtext.example.mylang.MulExpr
 import org.xtext.example.mylang.PlusExpr
 import org.xtext.example.mylang.Program
+import org.xtext.example.mylang.Return
 import org.xtext.example.mylang.TYPE
+import org.xtext.example.mylang.VariableDecl
+import org.xtext.example.mylang.While
 
 /**
  * Generates code from your model files on save.
  * 
  * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
  */
-abstract class Name {
-	public String pointer;		
+abstract class Name {		
+	public TYPE type;
 }
 
-class Variable extends Name {
-	
+class GlobalVariable extends Name {
+	public String name;
 } 
 
+class LocalVariable extends Name {
+	public int offset; // variable is at [ebp + offset]
+	def String getAdress() {
+		return '''[ebp + «offset»]''';
+	}
+}
+
 class Func extends Name {
-	public TYPE result;
 	public List<TYPE> args = newLinkedList();
 } 
 
-class Array extends Name {
+
+class GlobalArray extends Name {
 	public int size;
+	public int offset; // variable is at [ebp + offset]
+	def String getAdress(int index) {
+		return '''[ebp + «offset» + «index»]''';
+	}
+}
+
+
+class LocalArray extends Name {
+	public int size;
+	public int offset; // variable is at [ebp + offset]
+	def String getAdress(int index) {
+		return '''[ebp + «offset» + «index»]''';
+	}
 }
 
 	
 class MylangGenerator extends AbstractGenerator {
+	final String errVariableRedefine = "variable\function with the same name exist"
+	final String badType = "Bad type"
 	
-	var variables = newLinkedHashMap();
+	def String getLine(EObject e) {
+		return NodeModelUtils.getNode(e).startLine.toString;
+	}
+	
+	var Map<String, Name> variables = newLinkedHashMap();
 
 	override void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		var tree = resource.contents;
@@ -49,7 +87,7 @@ class MylangGenerator extends AbstractGenerator {
 			var e = tree.get(0);
 			if (e instanceof Program) {
 				try {
-					fsa.generateFile('out.asm', e.walk);
+					fsa.generateFile(resource.URI.lastSegment.replace(".lang", ".asm"), e.walk);
 				} catch (Exception exp) {
 					fsa.generateFile('error.txt', exp.message);
 				}
@@ -57,15 +95,117 @@ class MylangGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def String walk(Program p) '''
+	/*def String checkCorrect(Program p) {
+		for (decl : p.declarations) {
+			if (variables.containsKey(decl.name)) {
+				return errVariableRedefine;
+			} 
+			if (decl instanceof VariableDecl) {
+				if ()
+			}
+		}
+		return ""
+	}*/
 	
-		.section data
-		«FOR decl : p.declarations»
-		«{ 
-		""}»
-		«ENDFOR»
+	def String walk(Program p) {
+		var String ans = "section .data\n"
+		for (decl : p.declarations) {
+			if (decl instanceof VariableDecl) {
+				if (variables.containsKey(decl.name)) {
+					throw new Exception();
+				}
+				ans += decl.name + '\n';
+				if (decl.array) {
+					variables.put(decl.name, new GlobalArray());
+				} else {
+					variables.put(decl.name, new GlobalVariable());
+				}
+			}	
+		}
+		ans += "section .text\nglobal main\n"
+		ans += "write:\n"
+		variables.put("write", new Func());
+		ans += "read:\n"
+		variables.put("read", new Func());
+		for (decl : p.declarations) {
+			if (decl instanceof FunctionDecl) {
+				if (variables.containsKey(decl.name)) {
+					throw new Exception();
+				}
+				ans += decl.name + ':\n';
+				variables.put(decl.name, new Func());
+				ans += walk(decl);
+			}	
+		}
 		ans;
-	'''
+	}
+	
+	def String walk(FunctionDecl e) {
+		var String[] locals;
+		for (arg : e.argList) {
+			locals.add(arg.name);
+			variables.put(arg.name, new LocalVariable());
+		}
+		var ans = walk(e.body, e.name);
+		for (variable : locals) {
+			variables.remove(variable)
+		}
+		ans;
+	}
+	
+	def String walk(Block e, String mark) {
+		var String[] locals;
+		var String ans = "";
+		var ifCounter = 0;
+		var whileCounter = 0;
+		for (command : e.commands) {
+			switch command {
+				VariableDecl: {
+					locals.add(command.name);
+					variables.put(command.name, new LocalVariable());
+				}
+				Assign: {
+					ans += walk(command.expression);
+					ans += "\tpop SOMETHING\n"
+				}
+				If: {
+					ifCounter++;
+					ans += walk(command.condition)
+					ans += "\tpop eax\n"
+					ans += "cmp eax, 1"
+					ans += "jne ";
+					ans += if (command.isElse) {
+						"else"
+					} else {
+						"endif"
+					}
+					ans += "\n";
+					ans += walk(command.body, mark);
+					if (command.isElse) {
+						ans += "jmp endif\n"
+						ans += "else:\n"
+						ans += walk(command.elseBody, mark);
+					}
+					ans += "endif:\n";
+				}
+				While: {
+					whileCounter++;
+					ans += "while:\n"
+					ans += walk(command.condition);
+				}
+				Return: {
+					ans += "\tret\n"
+				}
+				FunctionCall: {
+					
+				}
+			}
+		}
+		for (variable : locals) {
+			variables.remove(variable)
+		}
+		""
+	}
 	//push its result on stack (4 bytes)
 	def String walk(Expression e) '''
 			«walk(e.first)»
@@ -117,5 +257,33 @@ class MylangGenerator extends AbstractGenerator {
 		«ENDFOR»
 	'''
 	
+	def String walk(FinalExpr e) {
+		if (e instanceof FunctionCall) {
+			return walk(e);
+		} else if (e.expr != null) {
+			return walk(e.expr);
+		} else if (e.variable != null) {
+			if (e.isArray) {
+				'''
+					«walk(e.index)»
+				'''
+			}
+		} else {
+			var String ans = '''
+				«»
+					mov eax, «e.number»
+					push eax
+			'''
+			return ans;
+		}
+	}
+		
 	
+	def String walk(FunctionCall e) '''
+		«FOR arg : e.args.reverse»
+		«»
+			«walk(arg)»
+		«ENDFOR»
+			call «e.name»
+	'''
 } 
