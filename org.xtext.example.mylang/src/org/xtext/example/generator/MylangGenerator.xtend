@@ -114,6 +114,8 @@ class MylangGenerator extends AbstractGenerator {
 		section .data
 			int_format db "%d ", 0
 		'''
+		if (p.declarations == null)
+			return "";
 		for (decl : p.declarations) {
 			if (decl instanceof VariableDecl) {
 				if (variables.containsKey(decl.name)) {
@@ -161,6 +163,8 @@ class MylangGenerator extends AbstractGenerator {
 	//functions take its args from stack and return value int eax
 	def String walk(FunctionDecl e) {
 		var String[] scope;
+		if (e.argList == null)
+			return ""
 		for (arg : e.argList) {
 			scope.add(arg.name);
 			variables.put(arg.name, new Variable(arg.type, arg.name, "TODO"));
@@ -177,76 +181,92 @@ class MylangGenerator extends AbstractGenerator {
 	//
 	//stopped here
 	def String walk(Block e, String mark) {
-		var String[] locals;
+		var String[] scope;
 		var String ans = "";
 		var ifCounter = 0;
 		var whileCounter = 0;
+		if (e.commands == null)
+			return "";
 		for (command : e.commands) {
 			switch command {
 				VariableDecl: {
-					locals.add(command.name);
-					//variables.put(command.name, new LocalVariable());
+					if (variables.containsKey(command.name)) {
+						throw new Exception(errVariableRedefine);
+					}
+					scope.add(command.name);
+					variables.put(command.name, new Variable(command.type, command.name, "TODO"));
 				}
 				Assign: {
 					ans += walk(command.expression);
-					ans += "\tpop SOMETHING\n"
+					ans += '''
+					«»
+						pop eax
+						mov «variables.get(command).name» eax
+					'''
 				}
 				If: {
-					ifCounter++;
+					ifCounter++
 					ans += walk(command.condition)
 					ans += "\tpop eax\n"
-					ans += "cmp eax, 1"
-					ans += "jne ";
-					ans += if (command.isElse) {
-						"else"
-					} else {
-						"endif"
-					}
-					ans += "\n";
-					ans += walk(command.body, mark);
+					ans += "\tcmp eax, 1"
+					ans += "\tjne "
 					if (command.isElse) {
-						ans += "jmp endif\n"
-						ans += "else:\n"
-						ans += walk(command.elseBody, mark);
+						ans += mark + "_else" + ifCounter + "\n";
+						ans += walk(command.body, mark + "_if" + ifCounter)
+						ans += "\tjmp " + mark + "_endif" + ifCounter + "\n"
+						ans += mark + "_else" + ifCounter + ":\n"
+						ans += walk(command.elseBody, mark + "_else" + ifCounter)
+					} else {
+						ans += mark + "_endif" + ifCounter + "\n"
+						ans += walk(command.body, mark + "_if" + ifCounter)
 					}
-					ans += "endif:\n";
+					ans += mark + "_endif:\n";
 				}
 				While: {
 					whileCounter++;
-					ans += "while:\n"
+					ans += mark + "_while" + whileCounter + ":\n"
 					ans += walk(command.condition);
+					ans += "\tpop eax\n"
+					ans += "\tcmp eax, 1"
+					ans += "\tjne " + mark + "_endwhile" + whileCounter + "\n"
+					ans += walk(command.body, mark + "_while" + whileCounter)
+					ans += mark + "_endwhile" + whileCounter + ":\n"
 				}
 				Return: {
 					ans += "\tret\n"
 				}
 				FunctionCall: {
-					
+					ans += "\tTODO'\n"
 				}
 			}
 		}
-		for (variable : locals) {
+		for (variable : scope) {
 			variables.remove(variable)
 		}
-		""
+		return ans
 	}
+	
 	//push its result on stack (4 bytes)
-	def String walk(Expression e) '''
-			«walk(e.first)»
-		«FOR expr : e.expr»
-		«»
-			«walk(expr)»
-			pop eax
-			or [esp] eax
-		«ENDFOR»
-	'''
+	def String walk(Expression e) {
+		var String ans = ""//walk(e.first)
+		if (e.expr == null) {
+			return ans;
+		}
+		for (expr : e.expr) {
+			ans += ""//walk(expr);
+			ans += "\tpop eax\n"
+			ans += "\tor [esp], eax\n"
+		}
+		return ans
+	}
 	//push its result on stack (4 bytes)
 	def String walk(AndExpr e) '''
 			«walk(e.first)»
 		«FOR expr : e.expr»
-		«»
+		
 			«walk(expr)»
 			pop eax
-			and [esp] eax
+			and [esp], eax
 		«ENDFOR»
 	'''
 	
@@ -254,7 +274,13 @@ class MylangGenerator extends AbstractGenerator {
 	def String walk(CmpExpr e) '''
 			«walk(e.first)»
 		«IF e.second != null»
-			
+		
+			«walk(e.second)»
+			pop eax
+			pop ebx
+			cmp eax, ebx
+			TODO
+			push eax
 		«ENDIF»
 	'''
 	
@@ -262,10 +288,10 @@ class MylangGenerator extends AbstractGenerator {
 	def String walk(PlusExpr e) '''
 			«walk(e.first)»
 		«FOR expr : e.expr»
-		«»
+		
 			«walk(expr)»
 			pop eax
-			and [esp] eax
+			add [esp], eax
 		«ENDFOR»
 	'''
 	
@@ -273,24 +299,19 @@ class MylangGenerator extends AbstractGenerator {
 	def String walk(MulExpr e) '''
 			«walk(e.first)»
 		«FOR expr : e.expr»
-		«»
 			«walk(expr)»
 			pop eax
-			and [esp] eax
+			mul [esp], eax TODO
 		«ENDFOR»
 	'''
 	
 	def String walk(FinalExpr e) {
 		if (e instanceof FunctionCall) {
-			return walk(e);
+			return "\tTODO\n"
 		} else if (e.expr != null) {
 			return walk(e.expr);
 		} else if (e.variable != null) {
-			if (e.isArray) {
-				'''
-					«walk(e.index)»
-				'''
-			}
+			return "\tTODO VAR\n"
 		} else {
 			var String ans = '''
 				«»
@@ -300,7 +321,6 @@ class MylangGenerator extends AbstractGenerator {
 			return ans;
 		}
 	}
-		
 	
 	def String walk(FunctionCall e) '''
 		«FOR arg : e.args.reverse»

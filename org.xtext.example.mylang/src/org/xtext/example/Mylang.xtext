@@ -25,7 +25,7 @@ ArgumentDecl:
 ;
 
 Block:
-	'{' commands += Command* '}'
+	empty ?= '{' commands += Command* '}'
 ;
 
 Command:
@@ -45,7 +45,7 @@ While:
 ;
 
 Return:
-	"return" (value = Expression)? ';'
+	name = "return" (value = Expression)? ';'
 ;
 
 Expression:
