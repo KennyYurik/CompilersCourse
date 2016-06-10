@@ -35,45 +35,46 @@ import org.xtext.example.mylang.While
  */
 abstract class Name {		
 	public TYPE type;
-}
-
-class GlobalVariable extends Name {
 	public String name;
-} 
-
-class LocalVariable extends Name {
-	public int offset; // variable is at [ebp + offset]
-	def String getAdress() {
-		return '''[ebp + «offset»]''';
-	}
 }
+
+class Variable extends Name {
+	public String pointer; // either name or ebp + offset
+	
+	new (TYPE type, String name, String pointer) {
+		this.type = type;
+		this.name = name;
+		this.pointer = pointer;
+	}
+} 
 
 class Func extends Name {
-	public List<TYPE> args = newLinkedList();
+	public List<Pair<TYPE,String>> args;
+	
+	new (TYPE type, String name, List<Pair<TYPE,String>> args) {
+		this.type = type;
+		this.name = name;
+		this.args = args;
+	}
 } 
 
-
-class GlobalArray extends Name {
+class Array extends Name {
 	public int size;
-	public int offset; // variable is at [ebp + offset]
-	def String getAdress(int index) {
-		return '''[ebp + «offset» + «index»]''';
+	public String pointer;
+	
+	new(TYPE type, String name, String pointer, int size) {
+		this.type = type;
+		this.name = name;
+		this.size = size;
+		this.pointer = pointer;
 	}
+	
 }
-
-
-class LocalArray extends Name {
-	public int size;
-	public int offset; // variable is at [ebp + offset]
-	def String getAdress(int index) {
-		return '''[ebp + «offset» + «index»]''';
-	}
-}
-
 	
 class MylangGenerator extends AbstractGenerator {
-	final String errVariableRedefine = "variable\function with the same name exist"
-	final String badType = "Bad type"
+	val String errVariableRedefine = "variable\function with the same name exist"
+	val String errBadType = "Bad type"
+	val String errNoMain = "No main() function"
 	
 	def String getLine(EObject e) {
 		return NodeModelUtils.getNode(e).startLine.toString;
@@ -108,51 +109,73 @@ class MylangGenerator extends AbstractGenerator {
 	}*/
 	
 	def String walk(Program p) {
-		var String ans = "section .data\n"
+		var String ans = '''
+		extern printf
+		section .data
+			int_format db "%d ", 0
+		'''
 		for (decl : p.declarations) {
 			if (decl instanceof VariableDecl) {
 				if (variables.containsKey(decl.name)) {
-					throw new Exception();
+					throw new Exception(errVariableRedefine);
 				}
-				ans += decl.name + '\n';
+				ans += "\t" + decl.name;
 				if (decl.array) {
-					variables.put(decl.name, new GlobalArray());
+					variables.put(decl.name, new Array(decl.type, decl.name, decl.name, decl.size));
+					ans += " times " + decl.size;
 				} else {
-					variables.put(decl.name, new GlobalVariable());
+					variables.put(decl.name, new Variable(decl.type, decl.name, decl.name));
 				}
+				ans +=  " dd 0\n"
 			}	
 		}
-		ans += "section .text\nglobal main\n"
-		ans += "write:\n"
-		variables.put("write", new Func());
-		ans += "read:\n"
-		variables.put("read", new Func());
+		ans += '''
+		section .text
+		global _main
+		_write:
+			TODO
+		_read:
+			TODO
+		'''
+		variables.put("write", new Func(TYPE.VOID, "write", newLinkedList(new Pair(TYPE.INTEGER, "arg"))));
+		variables.put("read", new Func(TYPE.INTEGER, "read", newLinkedList()));
 		for (decl : p.declarations) {
 			if (decl instanceof FunctionDecl) {
 				if (variables.containsKey(decl.name)) {
-					throw new Exception();
+					throw new Exception(errVariableRedefine);
 				}
-				ans += decl.name + ':\n';
-				variables.put(decl.name, new Func());
+				ans += "_" + decl.name + ':\n';
+				var List<Pair<TYPE, String>> args = newLinkedList();
+				for (arg : decl.argList) {
+					args.add(new Pair(arg.type, arg.name));
+				}
+				variables.put(decl.name, new Func(decl.type, decl.name, args));
 				ans += walk(decl);
 			}	
 		}
+		if (!(variables.get("main") instanceof Func)) {
+			throw new Exception(errNoMain);
+		}
 		ans;
 	}
-	
+	//functions take its args from stack and return value int eax
 	def String walk(FunctionDecl e) {
-		var String[] locals;
+		var String[] scope;
 		for (arg : e.argList) {
-			locals.add(arg.name);
-			variables.put(arg.name, new LocalVariable());
+			scope.add(arg.name);
+			variables.put(arg.name, new Variable(arg.type, arg.name, "TODO"));
 		}
-		var ans = walk(e.body, e.name);
-		for (variable : locals) {
+		var ans = walk(e.body, "_" + e.name);
+		for (variable : scope) {
 			variables.remove(variable)
 		}
 		ans;
 	}
 	
+	
+	//
+	//
+	//stopped here
 	def String walk(Block e, String mark) {
 		var String[] locals;
 		var String ans = "";
@@ -162,7 +185,7 @@ class MylangGenerator extends AbstractGenerator {
 			switch command {
 				VariableDecl: {
 					locals.add(command.name);
-					variables.put(command.name, new LocalVariable());
+					//variables.put(command.name, new LocalVariable());
 				}
 				Assign: {
 					ans += walk(command.expression);
