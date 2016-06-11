@@ -151,16 +151,21 @@ class MylangGenerator extends AbstractGenerator {
 	}
 	//functions take its args from stack and return value int eax
 	def String walk(FunctionDecl e) {
+		var ans = "\tpush ebp\n"
+		ans += "\tmov ebp, esp\n"
 		var List<String> scope = newLinkedList();
+		int offset = 1;
 		for (arg : e.argList) {
 			scope.add(arg.name);
-			variables.put(arg.name, new Variable(arg.type, arg.name, "TODO"));
+			variables.put(arg.name, new Variable(arg.type, arg.name, "[ebp + " + offset * 4 + "]"));
+			offset++
 		}
+		ans += "\tadd esp, " + (offset - 1);
 		var ans = walk(e.body, "_" + e.name);
 		for (variable : scope) {
 			variables.remove(variable)
 		}
-		ans + "\n";
+		ans + "\n\tpop ebp\n";
 	}
 	
 	
@@ -222,7 +227,7 @@ class MylangGenerator extends AbstractGenerator {
 					ans += "\tret\n"
 				}
 				FunctionCall: {
-					ans += "\tFUNCTION CALL'\n"
+					ans += walk(command)
 				}
 			}
 		}
@@ -304,11 +309,16 @@ class MylangGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def String walk(FunctionCall e) '''
-		«FOR arg : e.args.reverse»
-		«»
-			«walk(arg)»
-		«ENDFOR»
-			call «e.name»
-	'''
+	def String walk(FunctionCall e) {
+		var String ans = ""
+		for (arg : e.args.reverse) {
+			ans += "\tpush " + variables.get(arg.name).pointer + "\n"
+		}
+		//TODO: DELETE LOCALS
+		var Map locals = variables.filter((a, b ))
+		ans += "\tcall " + e.name;
+		//TODO: READD LOCALS
+		ans += "\tpush eax\n"
+		ans
+	}
 } 
