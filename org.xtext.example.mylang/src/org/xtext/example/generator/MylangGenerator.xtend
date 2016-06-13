@@ -38,15 +38,6 @@ abstract class Name {
 	public String name;
 }
 
-class Variable extends Name {
-	public String pointer; // either name or ebp + offset
-	
-	new (TYPE type, String name, String pointer) {
-		this.type = type;
-		this.name = name;
-		this.pointer = pointer;
-	}
-} 
 
 class Func extends Name {
 	public List<Pair<TYPE,String>> args;
@@ -58,17 +49,30 @@ class Func extends Name {
 	}
 } 
 
-class Array extends Name {
-	public int size;
-	public String pointer;
+abstract class Var extends Name {
+	public boolean isGlobal;
+	public String pointer; // either name or ebp + offset
+}
+
+class Variable extends Var {
 	
-	new(TYPE type, String name, String pointer, int size) {
+	new (TYPE type, String name, String pointer, boolean isGlobal) {
+		this.type = type;
+		this.name = name;
+		this.pointer = pointer;
+		this.isGlobal = isGlobal;
+	}
+} 
+
+class Array extends Var {
+	public int size;
+	
+	new(TYPE type, String name, String pointer, int size, boolean isGlobal) {
 		this.type = type;
 		this.name = name;
 		this.size = size;
 		this.pointer = pointer;
 	}
-	
 }
 	
 class MylangGenerator extends AbstractGenerator {
@@ -109,10 +113,10 @@ class MylangGenerator extends AbstractGenerator {
 				}
 				ans += "\t" + decl.name;
 				if (decl.array) {
-					variables.put(decl.name, new Array(decl.type, decl.name, decl.name, decl.size));
+					variables.put(decl.name, new Array(decl.type, decl.name, decl.name, decl.size, true));
 					ans += " times " + decl.size;
 				} else {
-					variables.put(decl.name, new Variable(decl.type, decl.name, decl.name));
+					variables.put(decl.name, new Variable(decl.type, decl.name, decl.name, true));
 				}
 				ans +=  " dd 0\n"
 			}	
@@ -154,25 +158,29 @@ class MylangGenerator extends AbstractGenerator {
 		var ans = "\tpush ebp\n"
 		ans += "\tmov ebp, esp\n"
 		var List<String> scope = newLinkedList();
-		int offset = 1;
+		var int offset = 1;
 		for (arg : e.argList) {
 			scope.add(arg.name);
-			variables.put(arg.name, new Variable(arg.type, arg.name, "[ebp + " + offset * 4 + "]"));
+			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp + " + offset * 4, false));
 			offset++
 		}
-		ans += "\tadd esp, " + (offset - 1);
-		var ans = walk(e.body, "_" + e.name);
+		ans += "\tadd esp, " + (offset - 1) * 4 + "\n";
+		ans += walk(e.body, "_" + e.name, offset);
 		for (variable : scope) {
 			variables.remove(variable)
 		}
-		ans + "\n\tpop ebp\n";
+		ans += "\tsub esp, " + (offset - 1) * 4 + "\n"
+		ans += "\tpop ebp\n";
+		ans += "\tret\n";
+		ans		
 	}
 	
 	
 	//
 	//
 	//stopped here
-	def String walk(Block e, String mark) {
+	def String walk(Block e, String mark, int old_offset) {
+		var int offset = 0;
 		var List<String> scope = newLinkedList();
 		var String ans = "";
 		var ifCounter = 0;
@@ -184,12 +192,16 @@ class MylangGenerator extends AbstractGenerator {
 						throw new Exception(errVariableRedefine + getLine(command));
 					}
 					scope.add(command.name);
-					variables.put(command.name, new Variable(command.type, command.name, "TODO"));
+					variables.put(command.name, 
+						new Variable(command.type, command.name, "ebp + " + (old_offset + offset) * 4, false)
+					);
+					offset++;
 				}
 				Assign: {
 					ans += walk(command.expression);
 					ans += "\tpop eax\n"
-					ans += "\tmov TODO eax\n"
+					var String pointer = (variables.get(command.name) as Var).pointer;
+					ans += "\tmov [" + pointer + "] eax\n"
 				}
 				If: {
 					ifCounter++
@@ -199,13 +211,13 @@ class MylangGenerator extends AbstractGenerator {
 					ans += "\tjne "
 					if (command.isElse) {
 						ans += mark + "_else" + ifCounter + "\n";
-						ans += walk(command.body, mark + "_if" + ifCounter)
+						ans += walk(command.body, mark + "_if" + ifCounter, old_offset + offset)
 						ans += "\tjmp " + mark + "_endif" + ifCounter + "\n"
 						ans += mark + "_else" + ifCounter + ":\n"
-						ans += walk(command.elseBody, mark + "_else" + ifCounter)
+						ans += walk(command.elseBody, mark + "_else" + ifCounter, old_offset + offset)
 					} else {
 						ans += mark + "_endif" + ifCounter + "\n"
-						ans += walk(command.body, mark + "_if" + ifCounter)
+						ans += walk(command.body, mark + "_if" + ifCounter, old_offset + offset)
 					}
 					ans += mark + "_endif:\n";
 				}
@@ -216,7 +228,7 @@ class MylangGenerator extends AbstractGenerator {
 					ans += "\tpop eax\n"
 					ans += "\tcmp eax, 1\n"
 					ans += "\tjne " + mark + "_endwhile" + whileCounter + "\n"
-					ans += walk(command.body, mark + "_while" + whileCounter)
+					ans += walk(command.body, mark + "_while" + whileCounter, old_offset + offset)
 					ans += mark + "_endwhile" + whileCounter + ":\n"
 				}
 				Return: {
@@ -224,6 +236,8 @@ class MylangGenerator extends AbstractGenerator {
 						ans += walk(command.value);
 						ans += "\tpop eax\n";
 					}
+					ans += "\tsub esp, " + (old_offset + offset - 1) * 4 + "\n"
+					ans += "\tpop ebp\n"
 					ans += "\tret\n"
 				}
 				FunctionCall: {
@@ -234,6 +248,7 @@ class MylangGenerator extends AbstractGenerator {
 		for (variable : scope) {
 			variables.remove(variable)
 		}
+		ans += "\tsub esp, " + offset * 4 + "\n"
 		return ans
 	}
 	
@@ -312,7 +327,7 @@ class MylangGenerator extends AbstractGenerator {
 	def String walk(FunctionCall e) {
 		var String ans = ""
 		for (arg : e.args.reverse) {
-			ans += "\tpush " + variables.get(arg.name).pointer + "\n"
+			ans += walk(arg);
 		}
 		//TODO: DELETE LOCALS
 		var Map locals = variables.filter((a, b ))
