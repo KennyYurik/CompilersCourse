@@ -27,6 +27,9 @@ import org.xtext.example.mylang.Return
 import org.xtext.example.mylang.TYPE
 import org.xtext.example.mylang.VariableDecl
 import org.xtext.example.mylang.While
+import org.xtext.example.mylang.CMP_TYPE
+import org.xtext.example.mylang.PLUS_TYPE
+import org.xtext.example.mylang.MUL_TYPE
 
 /**
  * Generates code from your model files on save.
@@ -79,6 +82,8 @@ class MylangGenerator extends AbstractGenerator {
 	val String errVariableRedefine = "variable/function with the same name exist"
 	val String errBadType = "Bad type"
 	val String errNoMain = "No main() function"
+	val String errArraySize = "Invalid Array Size"
+	val String errBadEntity = "Assign or calling wrong entity"
 	
 	def String getLine(EObject e) {
 		return " at line " + NodeModelUtils.getNode(e).startLine.toString;
@@ -93,8 +98,10 @@ class MylangGenerator extends AbstractGenerator {
 			if (e instanceof Program) {
 				try {
 					fsa.generateFile(resource.URI.lastSegment.replace(".lang", ".asm"), e.walk);
+					
 				} catch (Exception exp) {
-					fsa.generateFile('error.txt', exp.message);
+					fsa.generateFile(resource.URI.lastSegment.replace(".lang", "-error.txt"), exp.message);
+					
 				}
 			}
 		}
@@ -104,15 +111,20 @@ class MylangGenerator extends AbstractGenerator {
 		var String ans = '''
 		extern printf
 		section .data
-			int_format db "%d ", 0
 		'''
 		for (decl : p.declarations) {
 			if (decl instanceof VariableDecl) {
 				if (variables.containsKey(decl.name)) {
 					throw new Exception(errVariableRedefine + getLine(decl));
 				}
+				if (decl.type != TYPE.INTEGER) {
+					throw new Exception(errBadType + getLine(decl));
+				}
 				ans += "\t" + decl.name;
 				if (decl.array) {
+					if (decl.size <= 0) {
+						throw new Exception(errArraySize + getLine(decl));
+					}
 					variables.put(decl.name, new Array(decl.type, decl.name, decl.name, decl.size, true));
 					ans += " times " + decl.size;
 				} else {
@@ -139,46 +151,58 @@ class MylangGenerator extends AbstractGenerator {
 				if (variables.containsKey(decl.name)) {
 					throw new Exception(errVariableRedefine + getLine(decl));
 				}
-				ans += "_" + decl.name + ':\n';
 				var List<Pair<TYPE, String>> args = newLinkedList();
 				for (arg : decl.argList) {
 					args.add(new Pair(arg.type, arg.name));
 				}
 				variables.put(decl.name, new Func(decl.type, decl.name, args));
-				ans += walk(decl);
 			}	
 		}
 		if (!(variables.get("main") instanceof Func)) {
 			throw new Exception(errNoMain);
 		}
+		for (decl : p.declarations) {
+			if (decl instanceof FunctionDecl) {
+				ans += "_" + decl.name + ':\n';
+				ans += walk(decl);
+			}
+		}
+		variables.clear
 		ans;
 	}
+	
 	//functions take its args from stack and return value int eax
 	def String walk(FunctionDecl e) {
 		var ans = "\tpush ebp\n"
 		ans += "\tmov ebp, esp\n"
 		var List<String> scope = newLinkedList();
-		var int offset = 1;
+		var int offset = 0;
 		for (arg : e.argList) {
-			scope.add(arg.name);
-			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp + " + offset * 4, false));
+			if (arg.type != TYPE.INTEGER) {
+				throw new Exception(errBadType + getLine(arg));
+			}
+			if (variables.containsKey(arg.name)) {
+				throw new Exception(errVariableRedefine + getLine(arg));
+			}
+			scope.add(arg.name);	
+			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp + " + (offset + 1) * 4, false));
 			offset++
 		}
-		ans += "\tadd esp, " + (offset - 1) * 4 + "\n";
+		if (offset > 0) {
+			ans += "\tadd esp, " + offset * 4 + "\n";
+		}
 		ans += walk(e.body, "_" + e.name, offset);
 		for (variable : scope) {
 			variables.remove(variable)
 		}
-		ans += "\tsub esp, " + (offset - 1) * 4 + "\n"
+		if (offset > 0) {
+			ans += "\tsub esp, " + offset * 4 + "\n"
+		}
 		ans += "\tpop ebp\n";
-		ans += "\tret\n";
+		ans += "\tret\n\n";
 		ans		
 	}
 	
-	
-	//
-	//
-	//stopped here
 	def String walk(Block e, String mark, int old_offset) {
 		var int offset = 0;
 		var List<String> scope = newLinkedList();
@@ -192,16 +216,43 @@ class MylangGenerator extends AbstractGenerator {
 						throw new Exception(errVariableRedefine + getLine(command));
 					}
 					scope.add(command.name);
-					variables.put(command.name, 
-						new Variable(command.type, command.name, "ebp + " + (old_offset + offset) * 4, false)
-					);
-					offset++;
+					if (command.isArray) {
+						if (command.size <= 0) {
+							throw new Exception(errArraySize + getLine(command));
+						}	
+						variables.put(command.name,
+							new Array(command.type, command.name, "ebp + " + (old_offset + offset + 1) * 4, command.size, false)
+						)
+						offset += command.size;
+					} else {
+						variables.put(command.name, 
+						new Variable(command.type, command.name, "ebp + " + (old_offset + offset + 1) * 4, false)
+						);
+						offset++;
+					}
 				}
 				Assign: {
 					ans += walk(command.expression);
-					ans += "\tpop eax\n"
-					var String pointer = (variables.get(command.name) as Var).pointer;
-					ans += "\tmov [" + pointer + "] eax\n"
+					if (command.isArray) {
+						var arr = variables.get(command.name);
+						if (arr instanceof Array) {
+							ans += walk(command.index);
+							ans += "\tpop ebx\n"
+							ans += "\tadd ebx, " + arr.pointer.substring(6) + "\n"
+							ans += "\tpop eax\n"
+							ans += "\tmov [ebp + ebx], eax\n" 
+						} else {
+							throw new Exception(errBadEntity + getLine(command));
+						}
+					} else {
+						if (variables.get(command.name) instanceof Variable) {
+							ans += "\tpop eax\n"
+							var String pointer = (variables.get(command.name) as Variable).pointer;
+							ans += "\tmov [" + pointer + "], eax\n"
+						} else {
+							throw new Exception(errBadEntity + getLine(command));
+						}
+					}
 				}
 				If: {
 					ifCounter++
@@ -236,7 +287,9 @@ class MylangGenerator extends AbstractGenerator {
 						ans += walk(command.value);
 						ans += "\tpop eax\n";
 					}
-					ans += "\tsub esp, " + (old_offset + offset - 1) * 4 + "\n"
+					if (old_offset + offset > 0) {
+						ans += "\tsub esp, " + (old_offset + offset) * 4 + "\n"	
+					}
 					ans += "\tpop ebp\n"
 					ans += "\tret\n"
 				}
@@ -248,7 +301,9 @@ class MylangGenerator extends AbstractGenerator {
 		for (variable : scope) {
 			variables.remove(variable)
 		}
-		ans += "\tsub esp, " + offset * 4 + "\n"
+		if (offset > 0) {
+			ans += "\tsub esp, " + offset * 4 + "\n"
+		}
 		return ans
 	}
 	
@@ -281,9 +336,17 @@ class MylangGenerator extends AbstractGenerator {
 			ans += walk(e.second)
 			ans += "\tpop eax\n"
 			ans += "\tpop ebx\n"
+			ans += "\txor edx, edx\n"
 			ans += "\tcmp eax, ebx\n"
-			ans += "\tTODOcmp\n"
-			ans += "\tpush eax\n"
+			ans +=  "\tset" + switch e.type {
+				case CMP_TYPE.EQ: "e"
+				case CMP_TYPE.GR: "g"
+				case CMP_TYPE.LESS: "l"
+				case CMP_TYPE.NEQ: "ne"
+				case CMP_TYPE.NGR: "ng"
+				case CMP_TYPE.NLESS: "nl"
+			} + " dl\n"
+			ans += "\tpush edx\n"
 		}
 		ans
 	}
@@ -291,10 +354,16 @@ class MylangGenerator extends AbstractGenerator {
 	// push its result on stack (4 bytes)
 	def String walk(PlusExpr e) {
 		var String ans = walk(e.first)
-		for (expr : e.expr) {
+		for (var i = 0; i < e.expr.size; i++) {
+			var expr = e.expr.get(i);
+			var type = e.type.get(i);
 			ans += walk(expr);
 			ans += "\tpop eax\n"
-			ans += "\tadd [esp], eax\n"
+			if (type == PLUS_TYPE.MINUS) {
+				ans += "\tsub [esp], eax\n"
+			} else {
+				ans += "\tadd [esp], eax\n"
+			}	
 		}
 		return ans
 	}
@@ -302,21 +371,52 @@ class MylangGenerator extends AbstractGenerator {
 	// push its result on stack (4 bytes)
 	def String walk(MulExpr e) {
 		var String ans = walk(e.first)
-		for (expr : e.expr) {
+		for (var i = 0; i < e.expr.size; i++) {
+			var expr = e.expr.get(i);
+			var type = e.type.get(i);
 			ans += walk(expr);
+			ans += "\tpop ebx\n"
 			ans += "\tpop eax\n"
-			ans += "\tmul [esp], eax\n"
+			if (type == MUL_TYPE.MUL) {
+				ans += "\tmul ebx\n"
+			} else {
+				ans += "\txor edx, edx\n"
+				ans += "\tdiv ebx\n"
+			}	
+			ans += "\tpush eax\n"
 		}
 		return ans
 	}
 	
 	def String walk(FinalExpr e) {
 		if (e instanceof FunctionCall) {
-			return "\tTODO\n"
+			return walk(e)
 		} else if (e.expr != null) {
 			return walk(e.expr);
 		} else if (e.variable != null) {
-			return "\tTODO VAR\n"
+			if (e.isArray) {
+				var String ans = ""
+				var arr = variables.get(e.variable);
+				if (arr instanceof Array) {
+					ans += walk(e.index);
+					ans += "\tpop ebx\n"
+					ans += "\tadd ebx, " + arr.pointer.substring(6) + "\n"
+					ans += "\tmov eax, [ebp + ebx]\n"
+					ans += "\tpush eax\n" 
+				} else {
+					throw new Exception(errBadEntity + getLine(e));
+				}
+			} else {
+				var String ans = "";
+				var variable = variables.get(e.variable)
+				if (variable instanceof Variable) {
+					var String pointer = (variable).pointer;
+					ans += "\tmov eax, [" + pointer + "]\n"
+					ans += "\tpush eax\n"
+				} else {
+					throw new Exception(errBadEntity + getLine(e));
+				}
+			}
 		} else {
 			var String ans = "\tmov eax, " + e.number + "\n"
 			ans += "\tpush eax\n"
@@ -329,10 +429,7 @@ class MylangGenerator extends AbstractGenerator {
 		for (arg : e.args.reverse) {
 			ans += walk(arg);
 		}
-		//TODO: DELETE LOCALS
-		var Map locals = variables.filter((a, b ))
-		ans += "\tcall " + e.name;
-		//TODO: READD LOCALS
+		ans += "\tcall _" + e.name + "\n";
 		ans += "\tpush eax\n"
 		ans
 	}
