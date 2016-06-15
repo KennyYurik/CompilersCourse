@@ -5,29 +5,31 @@
 * 2nd half-term: AST-tree, asm code, optimizations
 
 # Project structure
-* [Mylang.xtext](../master/org.xtext.example.mylang/src/org/xtext/example/Mylang.xtext) - grammar + tokens
-* [MylangGenerator.xtend](../master/org.xtext.example.mylang/src/org/xtext/example/generator/MylangGenerator.xtend) - traversing over AST
+* [Mylang.xtext](../master/workspace/org.xtext.example.mylang/src/org/xtext/example/Mylang.xtext) - grammar + tokens
+* [MylangGenerator.xtend](../master/workspace/org.xtext.example.mylang/src/org/xtext/example/generator/MylangGenerator.xtend) - traversing over AST
 
 # Language description
 * simple language based on C
 * types: int, void
 * variables
-   * same names do not allow in same scope vision
+   * same names do not allow in scope
 * declaration 
    `int a;` (only one variable in line)
 * allows arrays (size = const)
    `int[4] a;` (a is array size of 4)
 * functions 
    * like in C
-   * declaration `int func(int a, int b) { body }`
-   * calling `b = func(1, 2);`
+   * declaration 
+   `int func(int a, int b) { body }`
+   * calling 
+   `b = func(1, 2);`
 * while
   `while (a > b) { body }`
 * if
   `if (a == b) { body1 } else { body2 }` (else clause is unnesessary)
 * allows nested blocks
 * global variables are initializing with 0, local are not initializing
-* functions `read(a)`, `write(a)`
+* functions `a = read()`, `write(a)`
 * program starts its execution from `void main() {}` function
 
 ## Implementation
@@ -35,7 +37,7 @@
 * Implemented using xtext
    * Building parser from .xtext grammar file
    * Execute tree traverse in MylangGenerator.xtend
-   * Output file is %filename%.asm 
+   * Output files is tests/src-gen/%filename%.asm
 
 ## Example
 ```
@@ -53,13 +55,10 @@ int fact2(int n) {
 	return ans;
 }
 void main() {
-	int a;
-	int b;
-	READ(m);
+	m = read();
 	a = fact1(m);
-	WRITE(a);
+	write(a);
 	b = fact2(m);
-	WRITE(b);
+	write(b);
 }
 ```
-test
