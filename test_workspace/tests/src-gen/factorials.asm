@@ -2,6 +2,7 @@ extern _printf, _scanf
 section .data
 	int_format_in db "%d", 0
 	int_format_out db "%d\n", 0
+	m dd 0
 section .text
 global _main
  _write:

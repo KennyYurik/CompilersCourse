@@ -1,4 +1,4 @@
-all: in-out factorials
+all: in-out
 	
 in-out: src-gen/in-out.asm
 	mkdir build

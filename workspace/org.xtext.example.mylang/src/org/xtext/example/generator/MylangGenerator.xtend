@@ -112,7 +112,7 @@ class MylangGenerator extends AbstractGenerator {
 		extern _printf, _scanf
 		section .data
 			int_format_in db "%d", 0
-			int_format_out db "%d\n", 0
+			int_format_out db "%d", 10, 0
 		'''
 		for (decl : p.declarations) {
 			if (decl instanceof VariableDecl) {
@@ -139,6 +139,7 @@ class MylangGenerator extends AbstractGenerator {
 		section .text
 		global _main
 		 _write:
+			mov eax, [esp + 4]
 			push eax
 			push int_format_out
 			call _printf
@@ -153,6 +154,7 @@ class MylangGenerator extends AbstractGenerator {
 			mov eax, [esp + 4]
 			add esp, 8
 			ret
+			
 		'''
 		variables.put("write", new Func(TYPE.VOID, "write", newLinkedList(new Pair(TYPE.INTEGER, "arg"))));
 		variables.put("read", new Func(TYPE.INTEGER, "read", newLinkedList()));
@@ -195,18 +197,18 @@ class MylangGenerator extends AbstractGenerator {
 				throw new Exception(errVariableRedefine + getLine(arg));
 			}
 			scope.add(arg.name);	
-			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp + " + (offset + 1) * 4, false));
+			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp - " + (offset + 1) * 4, false));
 			offset++
 		}
 		if (offset > 0) {
-			ans += "\tadd esp, " + offset * 4 + "\n";
+			ans += "\tsub esp, " + offset * 4 + "\n";
 		}
 		ans += walk(e.body, "_" + e.name, offset);
 		for (variable : scope) {
 			variables.remove(variable)
 		}
 		if (offset > 0) {
-			ans += "\tsub esp, " + offset * 4 + "\n"
+			ans += "\tadd esp, " + offset * 4 + "\n"
 		}
 		ans += "\tpop ebp\n";
 		ans += "\tret\n\n";
@@ -231,14 +233,16 @@ class MylangGenerator extends AbstractGenerator {
 							throw new Exception(errArraySize + getLine(command));
 						}	
 						variables.put(command.name,
-							new Array(command.type, command.name, "ebp + " + (old_offset + offset + 1) * 4, command.size, false)
+							new Array(command.type, command.name, "ebp - " + (old_offset + offset + 1) * 4, command.size, false)
 						)
 						offset += command.size;
+						ans += "\tsub esp, " + command.size + "\n";
 					} else {
 						variables.put(command.name, 
-						new Variable(command.type, command.name, "ebp + " + (old_offset + offset + 1) * 4, false)
+						new Variable(command.type, command.name, "ebp - " + (old_offset + offset + 1) * 4, false)
 						);
 						offset++;
+						ans += "\tsub esp, 4\n";
 					}
 				}
 				Assign: {
@@ -250,7 +254,7 @@ class MylangGenerator extends AbstractGenerator {
 							ans += "\tpop ebx\n"
 							ans += "\tadd ebx, " + arr.pointer.substring(6) + "\n"
 							ans += "\tpop eax\n"
-							ans += "\tmov [ebp + ebx], eax\n" 
+							ans += "\tmov [ebp - ebx], eax\n" 
 						} else {
 							throw new Exception(errBadEntity + getLine(command));
 						}
@@ -280,7 +284,7 @@ class MylangGenerator extends AbstractGenerator {
 						ans += mark + "_endif" + ifCounter + "\n"
 						ans += walk(command.body, mark + "_if" + ifCounter, old_offset + offset)
 					}
-					ans += mark + "_endif:\n";
+					ans += mark + "_endif" + ifCounter + ":\n";
 				}
 				While: {
 					whileCounter++;
@@ -298,13 +302,14 @@ class MylangGenerator extends AbstractGenerator {
 						ans += "\tpop eax\n";
 					}
 					if (old_offset + offset > 0) {
-						ans += "\tsub esp, " + (old_offset + offset) * 4 + "\n"	
+						ans += "\tadd esp, " + (old_offset + offset) * 4 + "\n"	
 					}
 					ans += "\tpop ebp\n"
 					ans += "\tret\n"
 				}
 				FunctionCall: {
 					ans += walk(command)
+					ans += "\tpop eax\n"
 				}
 			}
 		}
@@ -312,7 +317,7 @@ class MylangGenerator extends AbstractGenerator {
 			variables.remove(variable)
 		}
 		if (offset > 0) {
-			ans += "\tsub esp, " + offset * 4 + "\n"
+			ans += "\tadd esp, " + offset * 4 + "\n"
 		}
 		return ans
 	}
@@ -411,7 +416,7 @@ class MylangGenerator extends AbstractGenerator {
 					ans += walk(e.index);
 					ans += "\tpop ebx\n"
 					ans += "\tadd ebx, " + arr.pointer.substring(6) + "\n"
-					ans += "\tmov eax, [ebp + ebx]\n"
+					ans += "\tmov eax, [ebp - ebx]\n"
 					ans += "\tpush eax\n" 
 				} else {
 					throw new Exception(errBadEntity + getLine(e));
@@ -440,6 +445,7 @@ class MylangGenerator extends AbstractGenerator {
 			ans += walk(arg);
 		}
 		ans += "\tcall _" + e.name + "\n";
+		ans += "\tadd esp, " + (4 * e.args.size) + "\n";
 		ans += "\tpush eax\n"
 		ans
 	}
