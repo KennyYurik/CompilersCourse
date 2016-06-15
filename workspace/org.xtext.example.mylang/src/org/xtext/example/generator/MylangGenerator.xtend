@@ -139,26 +139,11 @@ class MylangGenerator extends AbstractGenerator {
 		section .text
 		global _main
 		 _write:
-	push eax
-	push int_format_out
-	call _printf
-	add esp, 8
-	ret
-	
-_read:
-	sub esp, 4
-	mov [esp], esp
-	push int_format_in
-	call _scanf
-	mov eax, [esp + 4]
-	add esp, 8
-	ret
-		_write:
-			mov eax, [esp + 4]
 			push eax
 			push int_format_out
 			call _printf
-			ret 8
+			add esp, 8
+			ret
 			
 		_read:
 			sub esp, 4
@@ -166,7 +151,8 @@ _read:
 			push int_format_in
 			call _scanf
 			mov eax, [esp + 4]
-			ret 8
+			add esp, 8
+			ret
 		'''
 		variables.put("write", new Func(TYPE.VOID, "write", newLinkedList(new Pair(TYPE.INTEGER, "arg"))));
 		variables.put("read", new Func(TYPE.INTEGER, "read", newLinkedList()));
