@@ -230,7 +230,7 @@ class MylangGenerator extends AbstractGenerator {
 							new Array(command.type, command.name, "ebp - " + (old_offset + offset + 1) * 4, command.size, false)
 						)
 						offset += command.size;
-						ans += "\tsub esp, " + command.size + "\n";
+						ans += "\tsub esp, " + command.size * 4 + "\n";
 					} else {
 						variables.put(command.name, 
 						new Variable(command.type, command.name, "ebp - " + (old_offset + offset + 1) * 4, false)
@@ -246,9 +246,11 @@ class MylangGenerator extends AbstractGenerator {
 						if (arr instanceof Array) {
 							ans += walk(command.index);
 							ans += "\tpop ebx\n"
-							ans += "\tadd ebx, " + arr.pointer.substring(6) + "\n"
+							ans += "\tadd ebx, " + (4 * Integer.parseInt(arr.pointer.substring(6))) + "\n"
+							ans += "\txor ecx, ecx\n"
+							ans += "\tsub ecx, ebx\n"
 							ans += "\tpop eax\n"
-							ans += "\tmov [ebp - ebx], eax\n" 
+							ans += "\tmov [ebp + 4 * ecx], eax\n" 
 						} else {
 							throw new Exception(errBadEntity + getLine(command));
 						}
@@ -410,8 +412,10 @@ class MylangGenerator extends AbstractGenerator {
 				if (arr instanceof Array) {
 					ans += walk(e.index);
 					ans += "\tpop ebx\n"
-					ans += "\tadd ebx, " + arr.pointer.substring(6) + "\n"
-					ans += "\tmov eax, [ebp - ebx]\n"
+					ans += "\tadd ebx, " + (4 * Integer.parseInt(arr.pointer.substring(6))) + "\n"
+					ans += "\txor ecx, ecx\n"
+					ans += "\tsub ecx, ebx\n"
+					ans += "\tmov eax, [ebp + 4 * ecx]\n"
 					ans += "\tpush eax\n" 
 				} else {
 					throw new Exception(errBadEntity + getLine(e));
