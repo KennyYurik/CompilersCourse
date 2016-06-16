@@ -197,18 +197,12 @@ class MylangGenerator extends AbstractGenerator {
 				throw new Exception(errVariableRedefine + getLine(arg));
 			}
 			scope.add(arg.name);	
-			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp - " + (offset + 1) * 4, false));
+			variables.put(arg.name, new Variable(arg.type, arg.name, "ebp + " + (2 + offset) * 4, false));
 			offset++
 		}
-		if (offset > 0) {
-			ans += "\tsub esp, " + offset * 4 + "\n";
-		}
-		ans += walk(e.body, "_" + e.name, offset);
+		ans += walk(e.body, "_" + e.name, 0);
 		for (variable : scope) {
 			variables.remove(variable)
-		}
-		if (offset > 0) {
-			ans += "\tadd esp, " + offset * 4 + "\n"
 		}
 		ans += "\tpop ebp\n";
 		ans += "\tret\n\n";
@@ -294,6 +288,7 @@ class MylangGenerator extends AbstractGenerator {
 					ans += "\tcmp eax, 1\n"
 					ans += "\tjne " + mark + "_endwhile" + whileCounter + "\n"
 					ans += walk(command.body, mark + "_while" + whileCounter, old_offset + offset)
+					ans += "\tjmp " + mark + "_while" + whileCounter + "\n"
 					ans += mark + "_endwhile" + whileCounter + ":\n"
 				}
 				Return: {
@@ -352,7 +347,7 @@ class MylangGenerator extends AbstractGenerator {
 			ans += "\tpop eax\n"
 			ans += "\tpop ebx\n"
 			ans += "\txor edx, edx\n"
-			ans += "\tcmp eax, ebx\n"
+			ans += "\tcmp ebx, eax\n"
 			ans +=  "\tset" + switch e.type {
 				case CMP_TYPE.EQ: "e"
 				case CMP_TYPE.GR: "g"

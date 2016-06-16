@@ -1,4 +1,4 @@
-all: in-out
+all: expression
 	
 in-out: src-gen/in-out.asm
 	mkdir build
@@ -11,3 +11,10 @@ factorials: src-gen/factorials.asm
 	yasm -f win32 src-gen/factorials.asm -o build/factorials.o
 	gcc build/factorials.o -o factorials.exe
 	rm -r build
+	
+expression: src-gen/expression.asm
+	mkdir build
+	yasm -f win32 src-gen/expression.asm -o build/expression.o
+	gcc build/expression.o -o expression.exe
+	rm -r build
+	

@@ -8,3 +8,4 @@ test_workspace/tests/.project
 test_workspace/.metadata/*
 workspace/.recommenders/*
 *.exe
+test_workspace/tests/src-gen/.gitignore

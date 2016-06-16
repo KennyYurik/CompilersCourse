@@ -2,7 +2,6 @@ extern _printf, _scanf
 section .data
 	int_format_in db "%d", 0
 	int_format_out db "%d", 10, 0
-	m dd 0
 section .text
 global _main
  _write:
@@ -22,7 +21,7 @@ _read:
 	add esp, 8
 	ret
 	
-_fact1:
+_fact:
 	push ebp
 	mov ebp, esp
 	mov eax, [ebp + 8]
@@ -37,14 +36,14 @@ _fact1:
 	push edx
 	pop eax
 	cmp eax, 1
-	jne _fact1_else1
+	jne _fact_else1
 	mov eax, 1
 	push eax
 	pop eax
 	pop ebp
 	ret
-	jmp _fact1_endif1
-_fact1_else1:
+	jmp _fact_endif1
+_fact_else1:
 	mov eax, [ebp + 8]
 	push eax
 	mov eax, [ebp + 8]
@@ -53,7 +52,7 @@ _fact1_else1:
 	push eax
 	pop eax
 	sub [esp], eax
-	call _fact1
+	call _fact
 	add esp, 4
 	push eax
 	pop ebx
@@ -63,95 +62,93 @@ _fact1_else1:
 	pop eax
 	pop ebp
 	ret
-_fact1_endif1:
-	pop ebp
-	ret
-
-_fact2:
-	push ebp
-	mov ebp, esp
-	sub esp, 4
-	sub esp, 4
-	mov eax, 1
-	push eax
-	pop eax
-	mov [ebp - 8], eax
-	mov eax, 1
-	push eax
-	pop eax
-	mov [ebp - 4], eax
-_fact2_while1:
-	mov eax, [ebp - 4]
-	push eax
-	mov eax, [ebp + 8]
-	push eax
-	pop eax
-	pop ebx
-	xor edx, edx
-	cmp ebx, eax
-	setng dl
-	push edx
-	pop eax
-	cmp eax, 1
-	jne _fact2_endwhile1
-	mov eax, [ebp - 8]
-	push eax
-	mov eax, [ebp - 4]
-	push eax
-	pop ebx
-	pop eax
-	mul ebx
-	push eax
-	pop eax
-	mov [ebp - 8], eax
-	mov eax, [ebp - 4]
-	push eax
-	mov eax, 1
-	push eax
-	pop eax
-	add [esp], eax
-	pop eax
-	mov [ebp - 4], eax
-	jmp _fact2_while1
-_fact2_endwhile1:
-	mov eax, [ebp - 8]
-	push eax
-	pop eax
-	add esp, 8
-	pop ebp
-	ret
-	add esp, 8
+_fact_endif1:
 	pop ebp
 	ret
 
 _main:
 	push ebp
 	mov ebp, esp
+	sub esp, 10
 	sub esp, 4
-	call _read
-	add esp, 0
+	mov eax, 0
 	push eax
 	pop eax
-	mov [ebp - 4], eax
-	mov eax, [ebp - 4]
+	mov [ebp - 44], eax
+_main_while1:
+	mov eax, [ebp - 44]
 	push eax
-	call _fact1
+	mov eax, 10
+	push eax
+	pop eax
+	pop ebx
+	xor edx, edx
+	cmp ebx, eax
+	setl dl
+	push edx
+	pop eax
+	cmp eax, 1
+	jne _main_endwhile1
+	mov eax, [ebp - 44]
+	push eax
+	call _fact
 	add esp, 4
+	push eax
+	mov eax, [ebp - 44]
+	push eax
+	pop ebx
+	add ebx, 4
+	pop eax
+	mov [ebp - ebx], eax
+	mov eax, [ebp - 44]
+	push eax
+	mov eax, 1
+	push eax
+	pop eax
+	add [esp], eax
+	pop eax
+	mov [ebp - 44], eax
+	jmp _main_while1
+_main_endwhile1:
+	mov eax, 0
+	push eax
+	pop eax
+	mov [ebp - 44], eax
+_main_while2:
+	mov eax, [ebp - 44]
+	push eax
+	mov eax, 10
+	push eax
+	pop eax
+	pop ebx
+	xor edx, edx
+	cmp ebx, eax
+	setl dl
+	push edx
+	pop eax
+	cmp eax, 1
+	jne _main_endwhile2
+	mov eax, [ebp - 44]
+	push eax
+	pop ebx
+	add ebx, 4
+	mov eax, [ebp - ebx]
 	push eax
 	call _write
 	add esp, 4
 	push eax
 	pop eax
-	mov eax, [ebp - 4]
+	mov eax, [ebp - 44]
 	push eax
-	call _fact2
-	add esp, 4
-	push eax
-	call _write
-	add esp, 4
+	mov eax, 1
 	push eax
 	pop eax
-	add esp, 4
+	add [esp], eax
+	pop eax
+	mov [ebp - 44], eax
+	jmp _main_while2
+_main_endwhile2:
+	add esp, 44
 	pop ebp
 	ret
 

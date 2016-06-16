@@ -85,7 +85,7 @@ enum PLUS_TYPE:
 ;
 
 enum CMP_TYPE:
-	EQ = '=' | GR = '>' | LESS = '<' | NEQ = "!=" | NGR = "<=" | NLESS = ">="
+	EQ = '==' | GR = '>' | LESS = '<' | NEQ = "!=" | NGR = "<=" | NLESS = ">="
 ;
 
 enum TYPE:
