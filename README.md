@@ -44,5 +44,5 @@
    * Building parser from .xtext grammar file
    * Execute tree traverse in MylangGenerator.xtend
    * Output files is tests/src-gen/%filename%.asm
-   * If compilation error occured, %filename%-error.txt created instead of .asm one
-
+   * If compilation error occured, %filename%-error.txt created with error description instead of .asm one
+* Compiling .asm files via (yasm)[http://yasm.tortall.net/]
