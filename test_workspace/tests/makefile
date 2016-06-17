@@ -1,4 +1,4 @@
-all: expression
+all: in-out factorials dijkstra
 	
 in-out: src-gen/in-out.asm
 	mkdir build
@@ -12,9 +12,9 @@ factorials: src-gen/factorials.asm
 	gcc build/factorials.o -o factorials.exe
 	rm -r build
 	
-expression: src-gen/expression.asm
+dijkstra: src-gen/dijkstra.asm
 	mkdir build
-	yasm -f win32 src-gen/expression.asm -o build/expression.o
-	gcc build/expression.o -o expression.exe
+	yasm -f win32 src-gen/dijkstra.asm -o build/dijkstra.o
+	gcc build/dijkstra.o -o dijkstra.exe
 	rm -r build
 	

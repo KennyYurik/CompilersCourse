@@ -1,6 +1,12 @@
+/*
+ * reading and printing numbers until -1
+ */
+
 void main() {
 	int n;
-	n = read();
-	write(n);
-	
+	n = 0;
+	while (n != 0 - 1) {
+		n = read();
+		write(n);
+	}
 }

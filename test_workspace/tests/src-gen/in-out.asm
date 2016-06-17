@@ -25,6 +25,28 @@ _main:
 	push ebp
 	mov ebp, esp
 	sub esp, 4
+	mov eax, 0
+	push eax
+	pop eax
+	mov [ebp - 4], eax
+_main_while1:
+	mov eax, [ebp - 4]
+	push eax
+	mov eax, 0
+	push eax
+	mov eax, 1
+	push eax
+	pop eax
+	sub [esp], eax
+	pop eax
+	pop ebx
+	xor edx, edx
+	cmp ebx, eax
+	setne dl
+	push edx
+	pop eax
+	cmp eax, 1
+	jne _main_endwhile1
 	call _read
 	add esp, 0
 	push eax
@@ -36,6 +58,8 @@ _main:
 	add esp, 4
 	push eax
 	pop eax
+	jmp _main_while1
+_main_endwhile1:
 	add esp, 4
 	pop ebp
 	ret

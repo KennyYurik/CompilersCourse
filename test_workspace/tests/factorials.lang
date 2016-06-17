@@ -1,4 +1,10 @@
-int m;
+/*
+ * input - n
+ * output: two lists of factorials from 0 to n
+ */
+
+int[20] arr;
+
 int fact1(int n) {
     if (n < 2) { return 1; }
     else { return n * fact1(n - 1); }
@@ -17,7 +23,26 @@ int fact2(int n) {
 void main() {
 	int n;
 	n = read();
-	write(fact1(n));
-	write(fact2(n)); 
+	int i;
+	i = 0;
+	while (i < n) {
+		arr[i] = fact1(i);
+		i = i + 1;
+	}
+	i = 0;
+	while (i < n) {
+		write(arr[i]);
+		i = i + 1;
+	}
+	i = 0;
+	while (i < n) {
+		arr[i] = fact2(i);
+		i = i + 1;
+	}
+	i = 0;
+	while (i < n) {
+		write(arr[i]);
+		i = i + 1;
+	}
 	 
 }
