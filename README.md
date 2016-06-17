@@ -7,6 +7,10 @@
 # Project structure
 * [Mylang.xtext](../master/workspace/org.xtext.example.mylang/src/org/xtext/example/Mylang.xtext) - grammar + tokens
 * [MylangGenerator.xtend](../master/workspace/org.xtext.example.mylang/src/org/xtext/example/generator/MylangGenerator.xtend) - traversing over AST
+* [test programs](../master/test_workspace/tests) - .lang files, description inside each file
+* [generated asm files](../master/test_workspace/tests/src-gen)
+* [.exe](../master/test_workspace/tests) - generated exec files with "make"
+* [makefile](../master/test_workspace/tests/makefile) - script for gnu make
 
 # Language description
 * simple language based on C
@@ -27,38 +31,18 @@
   `while (a > b) { body }`
 * if
   `if (a == b) { body1 } else { body2 }` (else clause is unnesessary)
-* allows nested blocks
 * global variables are initializing with 0, local are not initializing
 * functions `a = read()`, `write(a)`
 * program starts its execution from `void main() {}` function
+* operators
+  * bool: &, |, ==, >=, <=, >, <, !=
+  * int: +, -, *, /
 
 ## Implementation
 
-* Implemented using xtext
+* Implemented using [xtext](https://eclipse.org/Xtext/)
    * Building parser from .xtext grammar file
    * Execute tree traverse in MylangGenerator.xtend
    * Output files is tests/src-gen/%filename%.asm
+   * If compilation error occured, %filename%-error.txt created instead of .asm one
 
-## Example
-```
-int m;
-int fact1(int n) {
-	if (n < 2) { return 1; }
-	else { return n * fact1(n - 1); }
-}
-int fact2(int n) {
-	int i;
-	int ans;
-	ans = 1;
-	i = 1;
-	while (i <= n) { ans = ans * i; i = i + 1; }
-	return ans;
-}
-void main() {
-	m = read();
-	a = fact1(m);
-	write(a);
-	b = fact2(m);
-	write(b);
-}
-```
