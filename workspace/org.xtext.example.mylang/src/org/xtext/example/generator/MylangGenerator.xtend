@@ -30,6 +30,7 @@ import org.xtext.example.mylang.While
 import org.xtext.example.mylang.CMP_TYPE
 import org.xtext.example.mylang.PLUS_TYPE
 import org.xtext.example.mylang.MUL_TYPE
+import java.util.Collections
 
 /**
  * Generates code from your model files on save.
@@ -68,14 +69,21 @@ class Variable extends Var {
 } 
 
 class Array extends Var {
-	public int size;
 	
-	new(TYPE type, String name, String pointer, int size, boolean isGlobal) {
+	new(TYPE type, String name) {
 		this.type = type;
 		this.name = name;
-		this.size = size;
-		this.pointer = pointer;
+		this.pointer = name;
+		this.isGlobal = true;
 	}
+	
+	new(TYPE type, String name, int offset) {
+		this.type = type;
+		this.name = name;
+		this.pointer = offset.toString();
+		this.isGlobal = false;
+	}
+	
 }
 	
 class MylangGenerator extends AbstractGenerator {
@@ -108,6 +116,7 @@ class MylangGenerator extends AbstractGenerator {
 	}
 	
 	def String walk(Program p) {
+		variables.clear;
 		var String ans = '''
 		extern _printf, _scanf
 		section .data
@@ -127,7 +136,7 @@ class MylangGenerator extends AbstractGenerator {
 					if (decl.size <= 0) {
 						throw new Exception(errArraySize + getLine(decl));
 					}
-					variables.put(decl.name, new Array(decl.type, decl.name, decl.name, decl.size, true));
+					variables.put(decl.name, new Array(decl.type, decl.name));
 					ans += " times " + decl.size;
 				} else {
 					variables.put(decl.name, new Variable(decl.type, decl.name, decl.name, true));
@@ -179,7 +188,6 @@ class MylangGenerator extends AbstractGenerator {
 				ans += walk(decl);
 			}
 		}
-		variables.clear
 		ans;
 	}
 	
@@ -227,7 +235,7 @@ class MylangGenerator extends AbstractGenerator {
 							throw new Exception(errArraySize + getLine(command));
 						}	
 						variables.put(command.name,
-							new Array(command.type, command.name, "ebp - " + (old_offset + offset + 1) * 4, command.size, false)
+							new Array(command.type, command.name, (old_offset + offset + 1) * 4)
 						)
 						offset += command.size;
 						ans += "\tsub esp, " + command.size * 4 + "\n";
@@ -246,11 +254,19 @@ class MylangGenerator extends AbstractGenerator {
 						if (arr instanceof Array) {
 							ans += walk(command.index);
 							ans += "\tpop ebx\n"
-							ans += "\tadd ebx, " + (4 * Integer.parseInt(arr.pointer.substring(6))) + "\n"
-							ans += "\txor ecx, ecx\n"
-							ans += "\tsub ecx, ebx\n"
-							ans += "\tpop eax\n"
-							ans += "\tmov [ebp + 4 * ecx], eax\n" 
+							if (arr.isGlobal) {
+								ans += "\tmov eax, " + arr.name + "\n";
+								ans += "\tpop edx\n"
+								ans += "\tmov [eax + 4 * ebx], edx\n";
+
+							}
+							else {
+								ans += "\tadd ebx, " + (4 * Integer.parseInt(arr.pointer)) + "\n"
+								ans += "\txor ecx, ecx\n"
+								ans += "\tsub ecx, ebx\n"
+								ans += "\tpop eax\n"
+								ans += "\tmov [ebp + 4 * ecx], eax\n"
+							} 
 						} else {
 							throw new Exception(errBadEntity + getLine(command));
 						}
@@ -412,11 +428,17 @@ class MylangGenerator extends AbstractGenerator {
 				if (arr instanceof Array) {
 					ans += walk(e.index);
 					ans += "\tpop ebx\n"
-					ans += "\tadd ebx, " + (4 * Integer.parseInt(arr.pointer.substring(6))) + "\n"
-					ans += "\txor ecx, ecx\n"
-					ans += "\tsub ecx, ebx\n"
-					ans += "\tmov eax, [ebp + 4 * ecx]\n"
-					ans += "\tpush eax\n" 
+					if (arr.isGlobal) {
+						ans += "\tmov edx, " + arr.name + "\n";
+						ans += "\tmov eax, [edx + 4 * ebx]\n";
+						ans += "\tpush eax\n";
+					} else {
+						ans += "\tadd ebx, " + (4 * Integer.parseInt(arr.pointer)) + "\n"
+						ans += "\txor ecx, ecx\n"
+						ans += "\tsub ecx, ebx\n"
+						ans += "\tmov eax, [ebp + 4 * ecx]\n"
+						ans += "\tpush eax\n"	
+					} 
 				} else {
 					throw new Exception(errBadEntity + getLine(e));
 				}
@@ -440,7 +462,9 @@ class MylangGenerator extends AbstractGenerator {
 	
 	def String walk(FunctionCall e) {
 		var String ans = ""
-		for (arg : e.args.reverse) {
+		//var args = e.args;
+		//Collections.reverse(args);
+		for (arg : e.args.reverseView) {
 			ans += walk(arg);
 		}
 		ans += "\tcall _" + e.name + "\n";
